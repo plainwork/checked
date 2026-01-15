@@ -1,0 +1,193 @@
+@layout.app({ title, active })
+  @slot('main')
+<section class="rounded-2xl bg-white/90 p-6 shadow-sm ring-1 ring-slate-200/70 backdrop-blur">
+  <div class="flex flex-wrap items-start justify-between gap-6">
+    <div>
+      <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Person</p>
+      <h1 class="mt-2 text-3xl font-semibold tracking-tight font-['Nunito_Sans']">{{ person.name }}</h1>
+      <p class="mt-2 text-sm text-slate-600">
+        {{ person.title || 'No role listed' }} · {{ person.team_name }}
+      </p>
+    </div>
+    <div class="flex flex-col items-start gap-3">
+      @if(teamSchedule)
+        <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Team checkins every {{ teamSchedule.cadence_days }} days</span>
+        <span class="text-xs text-slate-500">Start {{ formatDate(teamSchedule.start_date) }} · Next due {{ formatDate(teamSchedule.next_due) }}</span>
+        @if(teamSchedule.missed_count > 0)
+          <span class="text-xs font-semibold text-rose-600">Missed {{ teamSchedule.missed_count }} checkin{{ teamSchedule.missed_count === 1 ? '' : 's' }}</span>
+        @endif
+      @else
+        <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">No team schedule</span>
+        <span class="text-xs text-slate-500">Set cadence on the team.</span>
+      @endif
+      @if(teamDue)
+        <span class="inline-flex items-center rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700">Checkin due now</span>
+      @endif
+    </div>
+  </div>
+</section>
+
+<section class="grid gap-6 lg:grid-cols-2">
+  <div class="rounded-2xl bg-white/90 p-6 shadow-sm ring-1 ring-slate-200/70 backdrop-blur">
+    <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Goals</p>
+    <h2 class="mt-2 flex items-center gap-2 text-xl font-semibold tracking-tight font-['Nunito_Sans']">
+      <i class="ri-flag-2-line text-base text-slate-500"></i>
+      What success looks like
+    </h2>
+    <form method="post" action="/people/{{ person.id }}/goals" class="mt-6 space-y-3">
+      <div>
+        <label class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 cursor-pointer" for="goal">Goal</label>
+        <input id="goal" name="goal" class="mt-2 w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-100" required placeholder="Increase activation by 15%" />
+      </div>
+      <div>
+        <label class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 cursor-pointer" for="goal-expectation">Expectation</label>
+        <input
+          id="goal-expectation"
+          name="expectation"
+          class="mt-2 w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-100"
+          required
+          placeholder="Weekly experiments shipped, shared metrics"
+        />
+      </div>
+      <button class="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 cursor-pointer" type="submit">Add goal</button>
+    </form>
+    <div class="mt-6 space-y-3">
+      @if(goals.length === 0)
+        <p class="text-sm text-slate-600">No goals yet.</p>
+      @endif
+      @each(goal in goals)
+        <div class="rounded-2xl border border-slate-200 bg-white/90 p-4">
+          <p class="text-sm font-semibold text-slate-900">{{ goal.goal }}</p>
+          <p class="text-xs text-slate-500">Expectation: {{ goal.expectation }}</p>
+        </div>
+      @endeach
+    </div>
+  </div>
+
+  <div class="rounded-2xl bg-white/90 p-6 shadow-sm ring-1 ring-slate-200/70 backdrop-blur">
+    <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Ownership</p>
+    <h2 class="mt-2 flex items-center gap-2 text-xl font-semibold tracking-tight font-['Nunito_Sans']">
+      <i class="ri-briefcase-line text-base text-slate-500"></i>
+      Projects owned
+    </h2>
+    <form method="post" action="/people/{{ person.id }}/projects" class="mt-6 space-y-3">
+      <div>
+        <label class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 cursor-pointer" for="project">Project</label>
+        <input id="project" name="project" class="mt-2 w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-100" required placeholder="Onboarding revamp" />
+      </div>
+      <div>
+        <label class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 cursor-pointer" for="project-expectation">Ownership expectation</label>
+        <input
+          id="project-expectation"
+          name="expectation"
+          class="mt-2 w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-100"
+          required
+          placeholder="Stakeholder updates, delivery milestones"
+        />
+      </div>
+      <button class="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 cursor-pointer" type="submit">Add project</button>
+    </form>
+    <div class="mt-6 space-y-3">
+      @if(projects.length === 0)
+        <p class="text-sm text-slate-600">No projects yet.</p>
+      @endif
+      @each(project in projects)
+        <div class="rounded-2xl border border-slate-200 bg-white/90 p-4">
+          <p class="text-sm font-semibold text-slate-900">{{ project.project }}</p>
+          <p class="text-xs text-slate-500">Expectation: {{ project.expectation }}</p>
+        </div>
+      @endeach
+    </div>
+  </div>
+</section>
+
+<section id="checkins" class="rounded-2xl bg-white/90 p-6 shadow-sm ring-1 ring-slate-200/70 backdrop-blur">
+  <input id="toggle-checkin-form" type="checkbox" class="peer sr-only" />
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">History</p>
+      <h2 class="mt-2 flex items-center gap-2 text-xl font-semibold tracking-tight font-['Nunito_Sans']">
+        <i class="ri-pulse-line text-base text-slate-500"></i>
+        Recent checkins
+      </h2>
+    </div>
+    <label
+      for="toggle-checkin-form"
+      class="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-900 cursor-pointer"
+    >
+      <span class="inline-flex items-center gap-2 peer-checked:hidden">
+        <i class="ri-add-line text-base"></i>
+        Log checkin
+      </span>
+      <span class="hidden items-center gap-2 peer-checked:inline-flex">
+        <i class="ri-close-line text-base"></i>
+        Cancel
+      </span>
+    </label>
+  </div>
+  <form method="post" action="/people/{{ person.id }}/checkins" class="mt-6 space-y-4 hidden peer-checked:block">
+    <div class="grid gap-2">
+      <label class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Progress rating</label>
+      <div class="flex flex-wrap gap-3 text-sm">
+        <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-3 py-2 font-semibold text-slate-600">
+          <input type="radio" name="rating" value="1" class="h-4 w-4 accent-slate-900" required />
+          1
+        </label>
+        <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-3 py-2 font-semibold text-slate-600">
+          <input type="radio" name="rating" value="2" class="h-4 w-4 accent-slate-900" />
+          2
+        </label>
+        <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-3 py-2 font-semibold text-slate-600">
+          <input type="radio" name="rating" value="3" class="h-4 w-4 accent-slate-900" />
+          3
+        </label>
+        <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-3 py-2 font-semibold text-slate-600">
+          <input type="radio" name="rating" value="4" class="h-4 w-4 accent-slate-900" />
+          4
+        </label>
+        <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-3 py-2 font-semibold text-slate-600">
+          <input type="radio" name="rating" value="5" class="h-4 w-4 accent-slate-900" />
+          5
+        </label>
+      </div>
+    </div>
+    <div>
+      <label class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 cursor-pointer" for="person-notes">Notes (optional)</label>
+      <textarea id="person-notes" name="notes" rows="3" class="mt-2 w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-100" placeholder="Quick wins, blockers, support needed"></textarea>
+    </div>
+    <button class="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 cursor-pointer" type="submit">
+      <i class="ri-check-line text-base"></i>
+      Log checkin
+    </button>
+  </form>
+  <div class="mt-6 space-y-3">
+    @if(checkins.length === 0)
+      <p class="text-sm text-slate-600">No checkins logged yet.</p>
+    @endif
+    @each(checkin in checkins)
+      <div class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-4">
+        <div
+          class="absolute inset-y-0 left-0
+            {{
+              checkin.rating === 5 ? 'bg-emerald-400/15' :
+              checkin.rating === 4 ? 'bg-lime-400/15' :
+              checkin.rating === 3 ? 'bg-yellow-400/15' :
+              checkin.rating === 2 ? 'bg-orange-400/15' :
+              'bg-red-400/15'
+            }}
+          "
+          style="width: {{ checkin.rating * 20 }}%;"
+        ></div>
+        <div class="relative z-10 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p class="text-sm font-semibold text-slate-900">Rating {{ checkin.rating }} / 5</p>
+            <p class="text-xs text-slate-500">{{ formatDate(checkin.created_at) }}</p>
+          </div>
+          <p class="text-xs text-slate-600">{{ checkin.notes || 'No notes shared' }}</p>
+        </div>
+      </div>
+    @endeach
+  </div>
+</section>
+  @endslot
+@end

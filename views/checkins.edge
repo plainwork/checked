@@ -1,0 +1,65 @@
+@layout.app({ title, active })
+  @slot('main')
+<section class="rounded-2xl bg-white/90 p-6 shadow-sm ring-1 ring-slate-200/70 backdrop-blur">
+  <div class="flex items-center justify-between">
+    <div>
+      <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Checkins</p>
+      <h1 class="mt-2 text-3xl font-semibold tracking-tight font-['Nunito_Sans']">Due checkins</h1>
+      <p class="mt-2 text-sm text-slate-600">Teams that are due as of today.</p>
+    </div>
+    <div class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">As of {{ formatDate(today) }}</div>
+  </div>
+</section>
+
+<section class="grid gap-4">
+  @if(dueCheckins.length === 0)
+    <div class="rounded-2xl bg-white/90 p-6 shadow-sm ring-1 ring-slate-200/70 backdrop-blur">
+      <p class="text-sm text-slate-600">No teams are due today.</p>
+    </div>
+  @endif
+  @each(item in dueCheckins)
+    <div class="rounded-2xl bg-white/90 p-6 shadow-sm ring-1 ring-slate-200/70 backdrop-blur">
+      <div class="flex flex-wrap items-center justify-between gap-6">
+        <div>
+          <p class="text-base font-semibold text-slate-900">{{ item.team_name }}</p>
+          <p class="text-xs text-slate-500">{{ item.people_count }} people · due {{ formatDate(item.next_due) }}</p>
+          @if(item.missed_count > 0)
+            <p class="mt-1 text-xs font-semibold text-rose-600">Missed {{ item.missed_count }} checkin{{ item.missed_count === 1 ? '' : 's' }}</p>
+          @endif
+        </div>
+        <a class="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-900 cursor-pointer" href="/teams/{{ item.team_id }}#checkins">
+          <i class="ri-play-circle-line text-base"></i>
+          Run checkin
+        </a>
+      </div>
+    </div>
+  @endeach
+</section>
+
+<section class="rounded-2xl bg-white/90 p-6 shadow-sm ring-1 ring-slate-200/70 backdrop-blur">
+  <div class="flex items-center justify-between">
+    <div>
+      <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Next up</p>
+      <h2 class="mt-2 text-xl font-semibold tracking-tight font-['Nunito_Sans']">Upcoming checkins</h2>
+    </div>
+  </div>
+  <div class="mt-6 space-y-3">
+    @if(upcomingCheckins.length === 0)
+      <p class="text-sm text-slate-600">No upcoming checkins scheduled yet.</p>
+    @endif
+    @each(item in upcomingCheckins)
+      <div class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white/90 p-4">
+        <div>
+          <p class="text-sm font-semibold text-slate-900">{{ item.team_name }}</p>
+          <p class="text-xs text-slate-500">{{ item.people_count }} people · next due {{ formatDate(item.next_due) }}</p>
+        </div>
+        <a class="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-900 cursor-pointer" href="/teams/{{ item.team_id }}">
+          <i class="ri-team-line text-base"></i>
+          View team
+        </a>
+      </div>
+    @endeach
+  </div>
+</section>
+  @endslot
+@end
