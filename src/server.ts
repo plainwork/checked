@@ -9,6 +9,14 @@ import {
   createPerson,
   createProject,
   createTeam,
+  completeGoalForPerson,
+  deleteCheckinForPerson,
+  deleteGoalForPerson,
+  deletePerson,
+  deletePersonFromTeam,
+  deleteProjectForPerson,
+  deleteSchedule,
+  deleteTeam,
   getPerson,
   getSchedule,
   getTeamCheckinStats,
@@ -22,6 +30,11 @@ import {
   listTeams,
   today,
   upsertSchedule,
+  updateCheckinForPerson,
+  updateGoalForPerson,
+  updatePerson,
+  updateProjectForPerson,
+  updateTeam,
 } from "./db";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -148,6 +161,25 @@ const server = Bun.serve({
       return redirect("/teams");
     }
 
+    const teamDeleteMatch = pathname.match(/^\/teams\/(\d+)\/delete$/);
+    if (teamDeleteMatch && request.method === "POST") {
+      const teamId = Number(teamDeleteMatch[1]);
+      if (Number.isFinite(teamId)) {
+        deleteTeam(teamId);
+      }
+      return redirect("/teams");
+    }
+
+    const teamUpdateMatch = pathname.match(/^\/teams\/(\d+)\/update$/);
+    if (teamUpdateMatch && request.method === "POST") {
+      const teamId = Number(teamUpdateMatch[1]);
+      const data = await parseForm(request);
+      if (Number.isFinite(teamId) && data.name) {
+        updateTeam(teamId, data.name);
+      }
+      return redirect(`/teams/${teamId}`);
+    }
+
     const teamMatch = pathname.match(/^\/teams\/(\d+)$/);
     if (teamMatch && request.method === "GET") {
       const teamId = Number(teamMatch[1]);
@@ -181,6 +213,18 @@ const server = Bun.serve({
       return redirect(`/teams/${teamId}`);
     }
 
+    const teamPersonDeleteMatch = pathname.match(
+      /^\/teams\/(\d+)\/people\/(\d+)\/delete$/
+    );
+    if (teamPersonDeleteMatch && request.method === "POST") {
+      const teamId = Number(teamPersonDeleteMatch[1]);
+      const personId = Number(teamPersonDeleteMatch[2]);
+      if (Number.isFinite(teamId) && Number.isFinite(personId)) {
+        deletePersonFromTeam(teamId, personId);
+      }
+      return redirect(`/teams/${teamId}`);
+    }
+
     const personMatch = pathname.match(/^\/people\/(\d+)$/);
     if (personMatch && request.method === "GET") {
       const personId = Number(personMatch[1]);
@@ -207,12 +251,105 @@ const server = Bun.serve({
       });
     }
 
+    const personDeleteMatch = pathname.match(/^\/people\/(\d+)\/delete$/);
+    if (personDeleteMatch && request.method === "POST") {
+      const personId = Number(personDeleteMatch[1]);
+      const person = Number.isFinite(personId) ? getPerson(personId) : null;
+      if (person) {
+        deletePerson(personId);
+        return redirect(`/teams/${person.team_id}`);
+      }
+      return redirect("/teams");
+    }
+
+    const personUpdateMatch = pathname.match(/^\/people\/(\d+)\/update$/);
+    if (personUpdateMatch && request.method === "POST") {
+      const personId = Number(personUpdateMatch[1]);
+      const data = await parseForm(request);
+      if (Number.isFinite(personId) && data.name) {
+        const title = data.title ? data.title : null;
+        updatePerson(personId, data.name, title);
+      }
+      return redirect(`/people/${personId}`);
+    }
+
+    const personGoalDeleteMatch = pathname.match(
+      /^\/people\/(\d+)\/goals\/(\d+)\/delete$/
+    );
+    if (personGoalDeleteMatch && request.method === "POST") {
+      const personId = Number(personGoalDeleteMatch[1]);
+      const goalId = Number(personGoalDeleteMatch[2]);
+      if (Number.isFinite(personId) && Number.isFinite(goalId)) {
+        deleteGoalForPerson(personId, goalId);
+      }
+      return redirect(`/people/${personId}`);
+    }
+
+    const personGoalUpdateMatch = pathname.match(
+      /^\/people\/(\d+)\/goals\/(\d+)\/update$/
+    );
+    if (personGoalUpdateMatch && request.method === "POST") {
+      const personId = Number(personGoalUpdateMatch[1]);
+      const goalId = Number(personGoalUpdateMatch[2]);
+      const data = await parseForm(request);
+      if (Number.isFinite(personId) && Number.isFinite(goalId)) {
+        if (data.goal && data.expectation) {
+          updateGoalForPerson(personId, goalId, data.goal, data.expectation);
+        }
+      }
+      return redirect(`/people/${personId}`);
+    }
+
+    const personGoalCompleteMatch = pathname.match(
+      /^\/people\/(\d+)\/goals\/(\d+)\/complete$/
+    );
+    if (personGoalCompleteMatch && request.method === "POST") {
+      const personId = Number(personGoalCompleteMatch[1]);
+      const goalId = Number(personGoalCompleteMatch[2]);
+      if (Number.isFinite(personId) && Number.isFinite(goalId)) {
+        completeGoalForPerson(personId, goalId);
+      }
+      return redirect(`/people/${personId}`);
+    }
+
     const personGoalsMatch = pathname.match(/^\/people\/(\d+)\/goals$/);
     if (personGoalsMatch && request.method === "POST") {
       const personId = Number(personGoalsMatch[1]);
       const data = await parseForm(request);
       if (data.goal && data.expectation) {
         createGoal(personId, data.goal, data.expectation);
+      }
+      return redirect(`/people/${personId}`);
+    }
+
+    const personProjectDeleteMatch = pathname.match(
+      /^\/people\/(\d+)\/projects\/(\d+)\/delete$/
+    );
+    if (personProjectDeleteMatch && request.method === "POST") {
+      const personId = Number(personProjectDeleteMatch[1]);
+      const projectId = Number(personProjectDeleteMatch[2]);
+      if (Number.isFinite(personId) && Number.isFinite(projectId)) {
+        deleteProjectForPerson(personId, projectId);
+      }
+      return redirect(`/people/${personId}`);
+    }
+
+    const personProjectUpdateMatch = pathname.match(
+      /^\/people\/(\d+)\/projects\/(\d+)\/update$/
+    );
+    if (personProjectUpdateMatch && request.method === "POST") {
+      const personId = Number(personProjectUpdateMatch[1]);
+      const projectId = Number(personProjectUpdateMatch[2]);
+      const data = await parseForm(request);
+      if (Number.isFinite(personId) && Number.isFinite(projectId)) {
+        if (data.project && data.expectation) {
+          updateProjectForPerson(
+            personId,
+            projectId,
+            data.project,
+            data.expectation
+          );
+        }
       }
       return redirect(`/people/${personId}`);
     }
@@ -225,6 +362,35 @@ const server = Bun.serve({
         createProject(personId, data.project, data.expectation);
       }
       return redirect(`/people/${personId}`);
+    }
+
+    const personCheckinDeleteMatch = pathname.match(
+      /^\/people\/(\d+)\/checkins\/(\d+)\/delete$/
+    );
+    if (personCheckinDeleteMatch && request.method === "POST") {
+      const personId = Number(personCheckinDeleteMatch[1]);
+      const checkinId = Number(personCheckinDeleteMatch[2]);
+      if (Number.isFinite(personId) && Number.isFinite(checkinId)) {
+        deleteCheckinForPerson(personId, checkinId);
+      }
+      return redirect(`/people/${personId}#checkins`);
+    }
+
+    const personCheckinUpdateMatch = pathname.match(
+      /^\/people\/(\d+)\/checkins\/(\d+)\/update$/
+    );
+    if (personCheckinUpdateMatch && request.method === "POST") {
+      const personId = Number(personCheckinUpdateMatch[1]);
+      const checkinId = Number(personCheckinUpdateMatch[2]);
+      const data = await parseForm(request);
+      const rating = Math.min(5, Math.max(1, Number(data.rating)));
+      const notes = data.notes ? data.notes : null;
+      if (Number.isFinite(personId) && Number.isFinite(checkinId)) {
+        if (Number.isFinite(rating)) {
+          updateCheckinForPerson(personId, checkinId, rating, notes);
+        }
+      }
+      return redirect(`/people/${personId}#checkins`);
     }
 
     const personCheckinMatch = pathname.match(/^\/people\/(\d+)\/checkins$/);
@@ -240,6 +406,17 @@ const server = Bun.serve({
         }
       }
       return redirect(`/people/${personId}#checkins`);
+    }
+
+    const teamScheduleDeleteMatch = pathname.match(
+      /^\/teams\/(\d+)\/schedule\/delete$/
+    );
+    if (teamScheduleDeleteMatch && request.method === "POST") {
+      const teamId = Number(teamScheduleDeleteMatch[1]);
+      if (Number.isFinite(teamId)) {
+        deleteSchedule(teamId);
+      }
+      return redirect(`/teams/${teamId}#schedule`);
     }
 
     const teamScheduleMatch = pathname.match(/^\/teams\/(\d+)\/schedule$/);

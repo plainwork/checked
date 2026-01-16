@@ -25,6 +25,7 @@ db.exec(`
     person_id INTEGER NOT NULL,
     goal TEXT NOT NULL,
     expectation TEXT NOT NULL,
+    completed_at TEXT,
     created_at TEXT NOT NULL,
     FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE CASCADE
   );
@@ -113,6 +114,20 @@ const ensureTeamCheckinSchema = () => {
 
 ensureTeamCheckinSchema();
 
+const ensureGoalSchema = () => {
+  const goalColumns = db.query("PRAGMA table_info(goals)").all();
+  const hasCompletedAt = goalColumns.some(
+    (column: { name: string }) => column.name === "completed_at"
+  );
+  if (goalColumns.length > 0 && !hasCompletedAt) {
+    db.exec(`
+      ALTER TABLE goals ADD COLUMN completed_at TEXT;
+    `);
+  }
+};
+
+ensureGoalSchema();
+
 const now = () => new Date().toISOString();
 
 const formatLocalDate = (date: Date) => {
@@ -186,6 +201,14 @@ const createTeam = (name: string) => {
   return Number(result.lastInsertRowid);
 };
 
+const updateTeam = (teamId: number, name: string) => {
+  return db.prepare("UPDATE teams SET name = ? WHERE id = ?").run(name, teamId);
+};
+
+const deleteTeam = (teamId: number) => {
+  return db.prepare("DELETE FROM teams WHERE id = ?").run(teamId);
+};
+
 const getTeam = (id: number) => {
   return db.query("SELECT * FROM teams WHERE id = ?").get(id);
 };
@@ -216,6 +239,22 @@ const createPerson = (teamId: number, name: string, title: string | null) => {
   return Number(result.lastInsertRowid);
 };
 
+const updatePerson = (personId: number, name: string, title: string | null) => {
+  return db
+    .prepare("UPDATE people SET name = ?, title = ? WHERE id = ?")
+    .run(name, title, personId);
+};
+
+const deletePerson = (personId: number) => {
+  return db.prepare("DELETE FROM people WHERE id = ?").run(personId);
+};
+
+const deletePersonFromTeam = (teamId: number, personId: number) => {
+  return db
+    .prepare("DELETE FROM people WHERE id = ? AND team_id = ?")
+    .run(personId, teamId);
+};
+
 const getPerson = (personId: number) => {
   return db
     .query(
@@ -232,7 +271,11 @@ const getPerson = (personId: number) => {
 const listGoals = (personId: number) => {
   return db
     .query(
-      "SELECT * FROM goals WHERE person_id = ? ORDER BY created_at DESC"
+      `
+      SELECT * FROM goals
+      WHERE person_id = ?
+      ORDER BY (completed_at IS NOT NULL), COALESCE(completed_at, created_at) DESC
+      `
     )
     .all(personId);
 };
@@ -241,6 +284,31 @@ const createGoal = (personId: number, goal: string, expectation: string) => {
   db.prepare(
     "INSERT INTO goals (person_id, goal, expectation, created_at) VALUES (?, ?, ?, ?)"
   ).run(personId, goal, expectation, now());
+};
+
+const updateGoalForPerson = (
+  personId: number,
+  goalId: number,
+  goal: string,
+  expectation: string
+) => {
+  return db
+    .prepare(
+      "UPDATE goals SET goal = ?, expectation = ? WHERE id = ? AND person_id = ?"
+    )
+    .run(goal, expectation, goalId, personId);
+};
+
+const completeGoalForPerson = (personId: number, goalId: number) => {
+  return db
+    .prepare("UPDATE goals SET completed_at = ? WHERE id = ? AND person_id = ?")
+    .run(now(), goalId, personId);
+};
+
+const deleteGoalForPerson = (personId: number, goalId: number) => {
+  return db
+    .prepare("DELETE FROM goals WHERE id = ? AND person_id = ?")
+    .run(goalId, personId);
 };
 
 const listProjects = (personId: number) => {
@@ -259,6 +327,25 @@ const createProject = (
   db.prepare(
     "INSERT INTO projects (person_id, project, expectation, created_at) VALUES (?, ?, ?, ?)"
   ).run(personId, project, expectation, now());
+};
+
+const updateProjectForPerson = (
+  personId: number,
+  projectId: number,
+  project: string,
+  expectation: string
+) => {
+  return db
+    .prepare(
+      "UPDATE projects SET project = ?, expectation = ? WHERE id = ? AND person_id = ?"
+    )
+    .run(project, expectation, projectId, personId);
+};
+
+const deleteProjectForPerson = (personId: number, projectId: number) => {
+  return db
+    .prepare("DELETE FROM projects WHERE id = ? AND person_id = ?")
+    .run(projectId, personId);
 };
 
 const getLastTeamCheckinDate = (teamId: number) => {
@@ -334,12 +421,37 @@ const upsertSchedule = (
   }
 };
 
+const deleteSchedule = (teamId: number) => {
+  return db
+    .prepare("DELETE FROM checkin_schedules WHERE team_id = ?")
+    .run(teamId);
+};
+
 const listCheckins = (personId: number) => {
   return db
     .query(
       "SELECT * FROM checkins WHERE person_id = ? ORDER BY created_at DESC LIMIT 8"
     )
     .all(personId);
+};
+
+const updateCheckinForPerson = (
+  personId: number,
+  checkinId: number,
+  rating: number,
+  notes: string | null
+) => {
+  return db
+    .prepare(
+      "UPDATE checkins SET rating = ?, notes = ? WHERE id = ? AND person_id = ?"
+    )
+    .run(rating, notes, checkinId, personId);
+};
+
+const deleteCheckinForPerson = (personId: number, checkinId: number) => {
+  return db
+    .prepare("DELETE FROM checkins WHERE id = ? AND person_id = ?")
+    .run(checkinId, personId);
 };
 
 const createCheckin = (
@@ -512,17 +624,30 @@ export {
   today,
   listTeams,
   createTeam,
+  updateTeam,
+  deleteTeam,
   getTeam,
   listPeopleByTeam,
   createPerson,
+  updatePerson,
+  deletePerson,
+  deletePersonFromTeam,
   getPerson,
   listGoals,
   createGoal,
+  updateGoalForPerson,
+  completeGoalForPerson,
+  deleteGoalForPerson,
   listProjects,
   createProject,
+  updateProjectForPerson,
+  deleteProjectForPerson,
   getSchedule,
   upsertSchedule,
+  deleteSchedule,
   listCheckins,
+  updateCheckinForPerson,
+  deleteCheckinForPerson,
   createCheckin,
   listTeamCheckins,
   getTeamCheckinStats,
